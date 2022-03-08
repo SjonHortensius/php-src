@@ -81,6 +81,10 @@ void fpm_request_reading_headers(void)
 		return;
 	}
 
+	// with keepalive enabled on the webserver, a request skips the ACCEPTING stage
+	if (proc->request_stage == FPM_REQUEST_FINISHED)
+		proc->handling_keepalive = 1;
+
 	proc->request_stage = FPM_REQUEST_READING_HEADERS;
 	proc->tv = now;
 	proc->accepted = now;
@@ -241,7 +245,9 @@ void fpm_request_check_timed_out(struct fpm_child_s *child, struct timeval *now,
 	}
 #endif
 
-	if (proc.request_stage > FPM_REQUEST_ACCEPTING && ((proc.request_stage < FPM_REQUEST_END) || track_finished)) {
+	if (!fpm_request_is_idle(child) &&
+		proc.request_stage > FPM_REQUEST_ACCEPTING &&
+		((proc.request_stage < FPM_REQUEST_END) || track_finished)) {
 		char purified_script_filename[sizeof(proc.script_filename)];
 		struct timeval tv;
 
@@ -288,7 +294,7 @@ int fpm_request_is_idle(struct fpm_child_s *child) /* {{{ */
 		return 0;
 	}
 
-	return proc->request_stage == FPM_REQUEST_ACCEPTING;
+	return proc->request_stage == FPM_REQUEST_ACCEPTING || (proc->handling_keepalive && proc->request_stage == FPM_REQUEST_READING_HEADERS);
 }
 /* }}} */
 

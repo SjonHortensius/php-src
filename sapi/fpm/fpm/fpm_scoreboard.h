@@ -28,6 +28,7 @@ struct fpm_scoreboard_proc_s {
 	pid_t pid;
 	unsigned long requests;
 	enum fpm_request_stage_e request_stage;
+	int handling_keepalive;
 	struct timeval accepted;
 	struct timeval duration;
 	time_t accepted_epoch;
